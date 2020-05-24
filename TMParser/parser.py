@@ -1,7 +1,8 @@
 import numpy as np
 from abc import ABC, abstractmethod
 import struct
-from termcolor import colored
+import sys
+import datetime
 
 TC_ERROR = 0x80		#Trace is an error message
 TC_LF = 0x40		#Trace includes a line feed at the end
@@ -27,25 +28,41 @@ TC_TEXT = 0x0E		#Trace a text ID combined of module ID and line number
 
 command_map = {}
 
+ugly_start_of_line_flag = True
+
+
 class DataParserBase(ABC):
-        @property
-        def nBytes(self):
-            return self.__n_bytes
-            pass
+    @property
+    def nBytes(self):
+        return self.__n_bytes
+        pass
 
-        def __init__(self, command, n_bytes=0 ):
-            self.__n_bytes = n_bytes
-            self.value_raw = bytes()
-            self.eol = ''
-            if (command & TC_LF) == TC_LF:
-                self.eol = '\n'
-            self.msgtype = []
-            if (command & TC_ERROR) == TC_ERROR:
-                self.msgtype = ['reverse', 'blink']
+    def __init__(self, command, n_bytes=0 ):
+        self.__n_bytes = n_bytes
+        self.value_raw = bytes()
+        self.eol = ''
+        if (command & TC_LF) == TC_LF:
+            self.eol = '\n'
+        self.msgtype = sys.stdout
+        if (command & TC_ERROR) == TC_ERROR:
+            self.msgtype = sys.stderr
 
-        @abstractmethod
-        def process(self, val):
-            pass
+    @abstractmethod
+    def process(self, val):
+        pass
+
+    def trace(self, msg):
+        global ugly_start_of_line_flag
+        if ugly_start_of_line_flag:
+            print('{} - '.format(datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")), file=self.msgtype, end='')
+
+        ugly_start_of_line_flag = False
+        if self.eol == '\n' or msg.endswith('\n'):
+            ugly_start_of_line_flag = True
+
+        print('{}'.format(msg),
+          file=self.msgtype,
+          end=self.eol)
 
 class DataParserNumberBase(DataParserBase):
     def __init__(self, command, n_bytes):
@@ -122,7 +139,7 @@ class Parser:
             if self.processNumber(val):
                 code = struct.unpack('>i', self.value_raw)[0]
                 if code in self.map_dict:
-                    print(colored( self.__format.format(self.map_dict[code].replace('\n','').replace('\\n', '\n')), attrs=self.msgtype ), end=self.eol )
+                    self.trace(self.__format.format(self.map_dict[code].replace('\n', '').replace('\\n', '\n')))
                 else:
                     print('Unknown code: {:X}'.format(code))
                 return True
@@ -136,7 +153,7 @@ class Parser:
 
         def process(self, val):
             if self.processNumber(val):
-                print(colored(self.__format.format(np.int8(self.value)), attrs=self.msgtype), end=self.eol)
+                self.trace(self.__format.format(np.int8(self.value)))
                 return True
             else:
                 return False
@@ -148,7 +165,7 @@ class Parser:
 
         def process(self, val):
             if self.processNumber(val):
-                print(colored(self.__format.format(np.uint8(self.value)), attrs=self.msgtype), end=self.eol)
+                self.trace(self.__format.format(np.uint8(self.value)))
                 return True
             else:
                 return False
@@ -160,7 +177,7 @@ class Parser:
 
         def process(self, val):
             if self.processNumber(val):
-                print(colored(self.__format.format(np.int16(self.value)), attrs=self.msgtype), end=self.eol)
+                self.trace(self.__format.format(np.int16(self.value)))
                 return True
             else:
                 return False
@@ -172,7 +189,7 @@ class Parser:
 
         def process(self, val):
             if self.processNumber(val):
-                print(colored(self.__format.format(np.uint16(self.value)), attrs=self.msgtype), end=self.eol)
+                self.trace(self.__format.format(np.uint16(self.value)))
                 return True
             else:
                 return False
@@ -184,7 +201,7 @@ class Parser:
 
         def process(self, val):
             if self.processNumber(val):
-                print(colored(self.__format.format(np.int32(self.value)), attrs=self.msgtype), end=self.eol)
+                self.trace(self.__format.format(np.int32(self.value)))
                 return True
             else:
                 return False
@@ -196,7 +213,7 @@ class Parser:
 
         def process(self, val):
             if self.processNumber(val):
-                print(colored(self.__format.format(np.uint32(self.value)), attrs=self.msgtype), end=self.eol)
+                self.trace(self.__format.format(np.uint32(self.value)))
                 return True
             else:
                 return False
@@ -208,7 +225,7 @@ class Parser:
 
         def process(self, val):
             if self.processNumber(val):
-                print(colored(self.__format.format(struct.unpack('<e', self.value_raw)[0]), attrs=self.msgtype), end=self.eol)
+                self.trace(self.__format.format(struct.unpack('<e', self.value_raw)[0]))
                 return True
             else:
                 return False
@@ -220,7 +237,7 @@ class Parser:
 
         def process(self, val):
             if self.processNumber(val):
-                print(colored(self.__format.format(struct.unpack('<f', self.value_raw)[0]), attrs=self.msgtype), end=self.eol)
+                self.trace(self.__format.format(struct.unpack('<f', self.value_raw)[0]))
                 return True
             else:
                 return False
@@ -237,7 +254,7 @@ class Parser:
             :type val: byte
             :return:
             """
-            print(colored(self.__format.format(val.decode('ascii')), attrs=self.msgtype), end=self.eol)
+            self.trace(self.__format.format(val.decode('ascii')))
             return True
 
     class ParserString(DataParserBase):
@@ -254,7 +271,7 @@ class Parser:
             """
             self.value_raw += val
             if val[0] == 0:
-                print(colored(self.__format.format(self.value_raw.decode('ascii')), attrs=self.msgtype), end=self.eol)
+                self.trace(self.__format.format(self.value_raw.decode('ascii')))
                 return True
             else:
                 return False
