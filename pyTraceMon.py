@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 import serial
+import re
 from TMParser import parser as tm_parser
 import os, sys, time
 import argparse
@@ -40,19 +41,26 @@ def create_map_from_project(path):
     :rtype: dict
     """
     print('Loading debug string map from path {}'.format(path))
+    # Define the regular expression pattern to match the MODULE_ID definition
+    pattern_module_id = r'#define\s+MODULE_ID\s+(.*?)[\n|/**|//]'
+
     ret_map_dic = {}
-        
+    module_id = 0    
     for root, dirs, files in os.walk(path):
         for file in files:
             if file.endswith('.c') or file.endswith('.cpp'):
                 # print(os.path.join(root, file))
                 with open(os.path.join(root, file), encoding="ISO-8859-1") as f:
                     for num, line in enumerate(f, 1):
-                        if 'MODULE_ID' in line and '#define' in line:
-                            module_id = eval(line.lstrip().rstrip().split()[2]) << 8 * 2
-                        if 'TRACE_TEXT' in line:
-                            text = line[line.find('"') + len('"'):line.rfind('"')].replace('\\t','\t')
-                            ret_map_dic[module_id + num] = text
+                        try:
+                            module_id_matches = re.findall(pattern_module_id, line, re.DOTALL)
+                            if len(module_id_matches)>0:
+                                module_id = eval(module_id_matches[0]) << 8 * 2
+                            if 'TRACE_TEXT' in line:
+                                text = line[line.find('"') + len('"'):line.rfind('"')].replace('\\t','\t')
+                                ret_map_dic[module_id + num] = text
+                        except Exception as e:
+                            print(f"Exception {e}\nLine {line}\nNum{num}")
     return ret_map_dic
 
 
@@ -71,7 +79,7 @@ def run_trace_mon(serial_device, serial_baudrate, serial_parity, debug_strings_m
     com_parser = tm_parser.Parser(debug_strings_map)
     while not stop():
         rcvd = ser.read(1)
-        if rcvd is not b'':
+        if rcvd != b'':
             com_parser.process(rcvd)
             sys.stdout.flush()
 
@@ -114,14 +122,15 @@ def monitor_path(path, thread_trace_mon):
         while not GB_stop:
             time.sleep(1)
     except KeyboardInterrupt:
+        print("CTR C")
         observer.stop()
         observer.join()
 
 
 if __name__ == '__main__':
     args_parser = argparse.ArgumentParser()
-    args_parser.add_argument('path', help='Path to the map file or to the project top be parsed', )
-    args_parser.add_argument('-d', '--device', required=True, help='Path to the serial device connected to the debug '
+    args_parser.add_argument('path', nargs='?', default=os.getcwd(), help='Path to the map file or to the project top be parsed', )
+    args_parser.add_argument('-d', '--device', default="COM5", help='Path to the serial device connected to the debug '
                                                                    'UART')
     args_parser.add_argument('-b', '--baudrate', default=460800, help='The baudrate of the serial communication of '
                                                                       'the debug')
@@ -153,6 +162,7 @@ if __name__ == '__main__':
                 map_dic = create_map_from_project(args.path)
                 monitor_thread.join()
     except KeyboardInterrupt:
+        print("CTR C")
         pass
 
     GB_stop = True
