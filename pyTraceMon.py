@@ -45,7 +45,16 @@ def create_map_from_project(path):
     pattern_module_id = r'#define\s+MODULE_ID\s+(.*?)[\n|/**|//]'
 
     ret_map_dic = {}
-    module_id = 0    
+    module_id = 0
+    longest_string_len = 0 
+    for root, dirs, files in os.walk(path):
+        if len(files)>0:
+            # Find the longest string using max() and len() as the key function
+            longest_string = max(files, key=len)
+            # Get the length of the longest string
+            if len(longest_string) > longest_string_len:
+                longest_string_len = len(longest_string)
+    longest_string_len += 5 # ":1234"
     for root, dirs, files in os.walk(path):
         for file in files:
             if file.endswith('.c') or file.endswith('.cpp'):
@@ -58,7 +67,8 @@ def create_map_from_project(path):
                                 module_id = eval(module_id_matches[0]) << 8 * 2
                             if 'TRACE_TEXT' in line:
                                 text = line[line.find('"') + len('"'):line.rfind('"')].replace('\\t','\t')
-                                ret_map_dic[module_id + num] = text
+                                file_line = f"{file}:{num}"
+                                ret_map_dic[module_id + num] = f"{file_line:<{longest_string_len}}{text}"#f"{file}:{num} {text}"
                         except Exception as e:
                             print(f"Exception {e}\nLine {line}\nNum{num}")
     return ret_map_dic

@@ -54,7 +54,7 @@ class DataParserBase(ABC):
     def trace(self, msg):
         global ugly_start_of_line_flag
         if ugly_start_of_line_flag:
-            print('{} - '.format(datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")), file=self.msgtype, end='')
+            print('{} - '.format(datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S.%f")), file=self.msgtype, end='')
 
         ugly_start_of_line_flag = False
         if self.eol == '\n' or msg.endswith('\n'):
