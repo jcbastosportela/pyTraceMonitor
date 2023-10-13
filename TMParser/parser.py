@@ -89,18 +89,18 @@ class Parser:
         self.__cmd = None
         self.map_dict = _map_dict
         self.dispatch = {
-            TC_ASCII :      [Parser.ParserASCII, '{}'],# 0x01
-            TC_INT8D :      [Parser.ParserInt8, '{}'],# 0x02
-            TC_UINT8D :     [Parser.ParserUint8, '{}'],# 0x03
-            TC_UINT8H :     [Parser.ParserInt8, '{:02X}'],# 0x04
-            TC_INT16D :     [Parser.ParserInt16, '{}'],# 0x05
-            TC_UINT16D :    [Parser.ParserUint16, '{}'],# 0x06
-            TC_UINT16H :    [Parser.ParserUint16, '{:02X}'],# 0x07
-            TC_INT32D :     [Parser.ParserInt32, '{}'],# 0x08
-            TC_UINT32D :    [Parser.ParserUint32, '{}'],# 0x09
-            TC_UINT32H :    [Parser.ParserUint32, '{:02X}'],# 0x0A
-            TC_FLOAT16 :    [Parser.ParserFloat16, '{e}'],# 0x0B
-            TC_FLOAT32 :    [Parser.ParserFloat32, '{:f}'],# 0x0C
+            TC_ASCII :      [Parser.ParserASCII, '{} '],# 0x01
+            TC_INT8D :      [Parser.ParserInt8, '{} '],# 0x02
+            TC_UINT8D :     [Parser.ParserUint8, '{} '],# 0x03
+            TC_UINT8H :     [Parser.ParserInt8, '{:02X} '],# 0x04
+            TC_INT16D :     [Parser.ParserInt16, '{} '],# 0x05
+            TC_UINT16D :    [Parser.ParserUint16, '{} '],# 0x06
+            TC_UINT16H :    [Parser.ParserUint16, '{:02X} '],# 0x07
+            TC_INT32D :     [Parser.ParserInt32, '{} '],# 0x08
+            TC_UINT32D :    [Parser.ParserUint32, '{} '],# 0x09
+            TC_UINT32H :    [Parser.ParserUint32, '{:02X} '],# 0x0A
+            TC_FLOAT16 :    [Parser.ParserFloat16, '{e} '],# 0x0B
+            TC_FLOAT32 :    [Parser.ParserFloat32, '{:f} '],# 0x0C
             TC_STRING :     [Parser.ParserString, '{}'],# 0x0D
             TC_TEXT :       [Parser.ParserText, self.map_dict, '{}']# 0x0E
         }

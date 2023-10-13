@@ -5,12 +5,26 @@ from TMParser import parser as tm_parser
 import os, sys, time
 import argparse
 import threading
+import binascii
 from watchdog.observers import Observer
 from watchdog.events import LoggingEventHandler, FileSystemEventHandler
 
 
 GB_stop = False
+HEX_TXT_DELIMITERS = ['"', ' ', ':']# Create a regular expression pattern that matches any of the delimiters
+HEX_TXT_DELIMITERS_PATTERN = '|'.join(re.escape(delimiter) for delimiter in HEX_TXT_DELIMITERS)
 
+# Function to detect and convert hex-encoded strings
+def decode_hex(text):    # Check if the length is odd
+    try:
+        # Attempt to decode the string from hexadecimal
+        decoded_text = binascii.unhexlify(text.encode()).decode()
+        return decoded_text
+    except binascii.Error as e:
+        print(e)
+        # If decoding fails, return the original text
+        return text
+    
 def read_map_from_file(path):
     """
     Creates a map of debug strings from an cache file. This is compatible with the files created by the TraceMon
@@ -41,6 +55,7 @@ def create_map_from_project(path):
     :rtype: dict
     """
     print('Loading debug string map from path {}'.format(path))
+    extensions_to_check = [".c", ".h", ".cpp", ".hpp"]
     # Define the regular expression pattern to match the MODULE_ID definition
     pattern_module_id = r'#define\s+MODULE_ID\s+(.*?)[\n|/**|//]'
 
@@ -48,16 +63,17 @@ def create_map_from_project(path):
     module_id = 0
     longest_string_len = 0 
     for root, dirs, files in os.walk(path):
-        if len(files)>0:
+        files_to_parse = [f for f in files if any(f.endswith(ext) for ext in extensions_to_check)]
+        if len(files_to_parse)>0:
             # Find the longest string using max() and len() as the key function
-            longest_string = max(files, key=len)
+            longest_string = max(files_to_parse, key=len)
             # Get the length of the longest string
             if len(longest_string) > longest_string_len:
                 longest_string_len = len(longest_string)
     longest_string_len += 5 # ":1234"
     for root, dirs, files in os.walk(path):
         for file in files:
-            if file.endswith('.c') or file.endswith('.cpp'):
+            if any(file.endswith(ext) for ext in extensions_to_check):
                 # print(os.path.join(root, file))
                 with open(os.path.join(root, file), encoding="ISO-8859-1") as f:
                     for num, line in enumerate(f, 1):
@@ -67,10 +83,14 @@ def create_map_from_project(path):
                                 module_id = eval(module_id_matches[0]) << 8 * 2
                             if 'TRACE_TEXT' in line:
                                 text = line[line.find('"') + len('"'):line.rfind('"')].replace('\\t','\t')
+                                if "\\x" in text:                                    
+                                    text_parts = re.split(HEX_TXT_DELIMITERS_PATTERN, text)
+                                    text = decode_hex(text_parts[0].replace("\\x", "")) + ''.join(text_parts[1:])
+                                    print(text)
                                 file_line = f"{file}:{num}"
                                 ret_map_dic[module_id + num] = f"{file_line:<{longest_string_len}}{text}"#f"{file}:{num} {text}"
                         except Exception as e:
-                            print(f"Exception {e}\nLine {line}\nNum{num}")
+                            print(f"Exception {e}\n{file}:{num} -> {line}")
     return ret_map_dic
 
 
