@@ -21,7 +21,7 @@ def decode_hex(text):    # Check if the length is odd
         decoded_text = binascii.unhexlify(text.encode()).decode()
         return decoded_text
     except binascii.Error as e:
-        print(e)
+        print(f"Error decoding hex string: {text}\nError: {e}" )
         # If decoding fails, return the original text
         return text
     
@@ -86,7 +86,6 @@ def create_map_from_project(path):
                                 if "\\x" in text:                                    
                                     text_parts = re.split(HEX_TXT_DELIMITERS_PATTERN, text)
                                     text = decode_hex(text_parts[0].replace("\\x", "")) + ''.join(text_parts[1:])
-                                    print(text)
                                 file_line = f"{file}:{num}"
                                 ret_map_dic[module_id + num] = f"{file_line:<{longest_string_len}}{text}"#f"{file}:{num} {text}"
                         except Exception as e:
