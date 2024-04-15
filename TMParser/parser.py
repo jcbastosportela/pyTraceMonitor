@@ -92,7 +92,7 @@ class Parser:
             TC_ASCII :      [Parser.ParserASCII, '{} '],# 0x01
             TC_INT8D :      [Parser.ParserInt8, '{} '],# 0x02
             TC_UINT8D :     [Parser.ParserUint8, '{} '],# 0x03
-            TC_UINT8H :     [Parser.ParserInt8, '{:02X} '],# 0x04
+            TC_UINT8H :     [Parser.ParserUint8, '{:02X} '],# 0x04
             TC_INT16D :     [Parser.ParserInt16, '{} '],# 0x05
             TC_UINT16D :    [Parser.ParserUint16, '{} '],# 0x06
             TC_UINT16H :    [Parser.ParserUint16, '{:02X} '],# 0x07
